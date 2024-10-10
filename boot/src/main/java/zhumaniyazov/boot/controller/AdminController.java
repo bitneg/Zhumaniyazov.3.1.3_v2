@@ -1,5 +1,9 @@
 package zhumaniyazov.boot.controller;
 
+import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -10,61 +14,48 @@ import zhumaniyazov.boot.service.RoleService;
 import zhumaniyazov.boot.service.UserService;
 import zhumaniyazov.boot.util.UserValidator;
 
-
 @Controller
 @RequestMapping("/admin")
 public class AdminController {
+    private static final Logger logger = LoggerFactory.getLogger(AdminController.class);
     private final UserValidator userValidator;
     private final UserService userService;
 
-    private final RoleService roleService;
-
-
-    public AdminController(UserValidator userValidator, UserService userService, RoleService roleService) {
+    public AdminController(UserValidator userValidator, UserService userService) {
         this.userValidator = userValidator;
         this.userService = userService;
-        this.roleService = roleService;
     }
 
-
-    @GetMapping()
-    public String index(Model model) {
-        User authUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    @GetMapping
+    public String index(@AuthenticationPrincipal User authUser, Model model) {
         model.addAttribute("authUser", authUser);
-        model.addAttribute("users", userService.getAllUsers());
-        model.addAttribute("roles", roleService.getAllRoles());
-        model.addAttribute("newUser", new User());
-
-
+        logger.info("Пользователь {} зашел в админку", authUser.getUsername());
         return "admin";
-
     }
-
 
     @PostMapping
-    public String create(Model model, @ModelAttribute("newUser") User user, BindingResult bindingResult) {
+    public String create(Model model, @ModelAttribute("newUser") @Valid User user, BindingResult bindingResult) {
         userValidator.validate(user, bindingResult);
-
         if (bindingResult.hasErrors()) {
-            return "/admin";
+            logger.warn("Ошибка валидации при создании пользователя: {}", user.getUsername());
+            return "admin";
         }
         userService.saveUser(user);
-        model.addAttribute("users", userService.getAllUsers());
-
+        logger.info("Пользователь {} успешно создан", user.getUsername());
         return "redirect:/admin";
-
     }
 
     @PatchMapping("/{id}")
-    public String update(@ModelAttribute("user") User user, @PathVariable("id") long id) {
+    public String update(@ModelAttribute("user") @Valid User user, @PathVariable("id") long id, Model model) {
         userService.updateUser(id, user);
+        logger.info("Пользователь с ID {} обновлен", id);
         return "redirect:/admin";
     }
 
     @DeleteMapping("/{id}")
-    private String delete(@PathVariable("id") long id) {
+    public String delete(@PathVariable("id") long id, Model model) {
         userService.deleteUser(id);
+        logger.info("Пользователь с ID {} удален", id);
         return "redirect:/admin";
     }
 }
-

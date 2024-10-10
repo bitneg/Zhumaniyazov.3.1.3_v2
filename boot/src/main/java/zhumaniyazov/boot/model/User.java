@@ -1,6 +1,10 @@
 package zhumaniyazov.boot.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -23,10 +27,17 @@ public class User implements UserDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
-
+    @NotBlank(message = "Имя не может быть пустым")
     private String name;
+
+    @NotBlank(message = "Фамилия не может быть пустой")
     private String surname;
+
+    @Min(value = 0, message = "Возраст должен быть не менее 0")
+    @Max(value = 120, message = "Возраст не должен превышать 120")
     private long age;
+
+    @Size(min = 6, message = "Пароль должен содержать не менее 6 символов")
     private String password;
 
     @ManyToMany(fetch = FetchType.EAGER)
